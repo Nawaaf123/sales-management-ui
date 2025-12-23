@@ -7,9 +7,9 @@ const api = axios.create({
   },
 });
 
-// OPTIONAL: set role for now (mock auth)
+// TEMP: mock role until real auth
 api.interceptors.request.use((config) => {
-  config.headers["X-ROLE"] = "admin"; // or "salesman"
+  config.headers["X-ROLE"] = "admin"; // change to "salesman" to test
   return config;
 });
 

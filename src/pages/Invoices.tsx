@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Plus, FileDown, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { InvoiceDialog } from "@/components/invoices/InvoiceDialog";
 import { InvoiceFilters } from "@/components/invoices/InvoiceFilters";
@@ -26,6 +27,7 @@ const Invoices = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // 🔹 Shops (still from Supabase – untouched)
   const { data: shops } = useQuery({
     queryKey: ["shops"],
     queryFn: async () => {
@@ -38,6 +40,7 @@ const Invoices = () => {
     },
   });
 
+  // 🔹 User role (still from Supabase – untouched)
   const { data: userRole } = useQuery({
     queryKey: ["userRole", user?.id],
     queryFn: async () => {
@@ -46,13 +49,13 @@ const Invoices = () => {
         .select("role")
         .eq("user_id", user?.id)
         .single();
-      
       if (error) throw error;
       return data?.role;
     },
     enabled: !!user?.id,
   });
 
+  // 🔹 Profiles (still from Supabase – untouched)
   const { data: profiles } = useQuery({
     queryKey: ["profiles"],
     queryFn: async () => {
@@ -67,69 +70,17 @@ const Invoices = () => {
 
   const isAdmin = userRole === "admin";
 
+  // 🔥 INVOICES — NOW FROM .NET API
   const { data: invoices, isLoading, refetch } = useQuery({
-    queryKey: ["invoices", searchQuery, statusFilter, shopFilter, sortBy, dateFrom, dateTo],
-    queryFn: async () => {
-      let query = supabase
-        .from("invoices")
-        .select(`
-          *,
-          shops (
-            name,
-            owner_name,
-            phone,
-            street_address,
-            city,
-            state,
-            zip_code
-          )
-        `);
+  queryKey: ["invoices"],
+  queryFn: async () => {
+    console.log("INVOICES QUERY RUNNING");
+    const response = await api.get("/api/invoices");
+    console.log("API RESPONSE", response.data);
+    return response.data;
+  },
+});
 
-      // Search filter
-      if (searchQuery) {
-        query = query.or(`invoice_number.ilike.%${searchQuery}%,shops.name.ilike.%${searchQuery}%`);
-      }
-
-      // Status filter
-      if (statusFilter !== "all") {
-        query = query.eq("payment_status", statusFilter as "paid" | "partial" | "unpaid");
-      }
-
-      // Shop filter
-      if (shopFilter !== "all") {
-        query = query.eq("shop_id", shopFilter);
-      }
-
-      // Date range filter
-      if (dateFrom) {
-        query = query.gte("created_at", `${dateFrom}T00:00:00`);
-      }
-      if (dateTo) {
-        query = query.lte("created_at", `${dateTo}T23:59:59.999`);
-      }
-
-      // Sorting
-      switch (sortBy) {
-        case "date_asc":
-          query = query.order("created_at", { ascending: true });
-          break;
-        case "amount_desc":
-          query = query.order("total_amount", { ascending: false });
-          break;
-        case "amount_asc":
-          query = query.order("total_amount", { ascending: true });
-          break;
-        case "date_desc":
-        default:
-          query = query.order("created_at", { ascending: false });
-          break;
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -167,7 +118,10 @@ const Invoices = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to export invoices",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to export invoices",
         variant: "destructive",
       });
     } finally {
@@ -180,28 +134,30 @@ const Invoices = () => {
       <div className="space-y-4 md:space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Invoices</h2>
-            <p className="text-sm md:text-base text-muted-foreground">Create and manage sales invoices</p>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+              Invoices
+            </h2>
+            <p className="text-sm md:text-base text-muted-foreground">
+              Create and manage sales invoices
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleExportToExcel}
               disabled={isExporting || !invoices || invoices.length === 0}
-              className="w-full sm:w-auto"
             >
               <FileDown className="mr-2 h-4 w-4" />
               {isExporting ? "Exporting..." : "Export"}
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsOldBalanceDialogOpen(true)}
-              className="w-full sm:w-auto"
             >
               <History className="mr-2 h-4 w-4" />
               Add Old Balance
             </Button>
-            <Button onClick={handleAddInvoice} className="w-full sm:w-auto">
+            <Button onClick={handleAddInvoice}>
               <Plus className="mr-2 h-4 w-4" />
               Create Invoice
             </Button>
