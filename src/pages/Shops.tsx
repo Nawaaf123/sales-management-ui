@@ -10,6 +10,7 @@ import { BulkUploadDialog } from "@/components/shops/BulkUploadDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
+import { DEV_FORCE_ADMIN } from "@/lib/devFlags";
 
 const Shops = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -33,7 +34,8 @@ const Shops = () => {
     enabled: !!user?.id,
   });
 
-  const isAdmin = userRole === "admin";
+  const isAdmin = DEV_FORCE_ADMIN;
+
 
   const { data: shops, isLoading, refetch } = useQuery({
     queryKey: ["shops", searchQuery],

@@ -4,7 +4,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Plus, FileDown, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import api from "@/lib/api";
+import { apiGet } from "@/lib/api";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { InvoiceDialog } from "@/components/invoices/InvoiceDialog";
 import { InvoiceFilters } from "@/components/invoices/InvoiceFilters";
@@ -68,18 +68,19 @@ const Invoices = () => {
     enabled: !!user?.id,
   });
 
-  const isAdmin = userRole === "admin";
+const isAdmin = DEV_FORCE_ADMIN;
 
+  
   // 🔥 INVOICES — NOW FROM .NET API
-  const { data: invoices, isLoading, refetch } = useQuery({
+
+const { data: invoices, isLoading, refetch } = useQuery({
   queryKey: ["invoices"],
   queryFn: async () => {
-    console.log("INVOICES QUERY RUNNING");
-    const response = await api.get("/api/invoices");
-    console.log("API RESPONSE", response.data);
-    return response.data;
-  },
+    return apiGet<any[]>("/api/invoices");
+  }
 });
+
+
 
 
   const handleClearFilters = () => {

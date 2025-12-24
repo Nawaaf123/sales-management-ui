@@ -1,16 +1,18 @@
-import axios from "axios";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const api = axios.create({
-  baseURL: "https://localhost:7058", // your .NET API
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+export async function apiGet<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      // TEMP: mock admin header (we will remove later)
+      "x-role": "admin"
+    }
+  });
 
-// TEMP: mock role until real auth
-api.interceptors.request.use((config) => {
-  config.headers["X-ROLE"] = "admin"; // change to "salesman" to test
-  return config;
-});
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "API request failed");
+  }
 
-export default api;
+  return response.json();
+}
